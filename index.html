@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-image:url("received_909469467659941.jpeg");
+            background-position: center 
+        }
+
+        h1 {
+            margin-top: 20px;
+        }
+
+        #game {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin: 20px auto;
+            width: 310px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: transparent;
+            color: black;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            cursor: pointer;
+            font-weight:bolder;
+        }
+
+        #reset {
+          background-color:transparent;
+          font-weight:bolder;
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #scoreboard {
+          background-color:transparent;
+          font-weight:bolder;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        #scoreboard div {
+            margin: 5px;
+        }
+
+        #difficulty, #mode {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+  
+    <h1>Tic-Tac-Toe</h1>
+    <div id="mode">
+        <label for="mode-select">Game Mode: </label>
+        <select id="mode-select">
+            <option value="cpu">Player vs CPU</option>
+            <option value="two">Player vs Player</option>
+        </select>
+    </div>
+
+    <div id="difficulty">
+        <label for="difficulty-select">CPU Difficulty: </label>
+        <select id="difficulty-select">
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+        </select>
+    </div>
+    <div id="game">
+      
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+
+    <button id="reset">Restart Game</button>
+    <p id="message"></p>
+
+    <div id="scoreboard">
+        <div>Player X Wins: <span id="x-score">0</span></div>
+        <div>Player O (CPU) Wins: <span id="o-score">0</span></div>
+        <div>Ties: <span id="ties">0</span></div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const cells = document.querySelectorAll(".cell");
+            const resetButton = document.getElementById("reset");
+            const messageElement = document.getElementById("message");
+            const xScoreElement = document.getElementById("x-score");
+            const oScoreElement = document.getElementById("o-score");
+            const tiesElement = document.getElementById("ties");
+            const difficultySelect = document.getElementById("difficulty-select");
+            const modeSelect = document.getElementById("mode-select");
+
+            let board = ["", "", "", "", "", "", "", "", ""];
+            let currentPlayer = "X";
+            let isGameActive = true;
+            let xScore = 0;
+            let oScore = 0;
+            let ties = 0;
+            let isPlayerVsCPU = true;
+
+            const winningConditions = [
+                [0, 1, 2],
+                [3, 4, 5],
+                [6, 7, 8],
+                [0, 3, 6],
+                [1, 4, 7],
+                [2, 5, 8],
+                [0, 4, 8],
+                [2, 4, 6]
+            ];
+
+            const handleResultValidation = () => {
+                let roundWon = false;
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const winCondition = winningConditions[i];
+                    const a = board[winCondition[0]];
+                    const b = board[winCondition[1]];
+                    const c = board[winCondition[2]];
+                    if (a === "" || b === "" || c === "") {
+                        continue;
+                    }
+                    if (a === b && b === c) {
+                        roundWon = true;
+                        break;
+                    }
+                }
+
+                if (roundWon) {
+                    messageElement.innerText = `Player ${currentPlayer} wins!`;
+                    isGameActive = false;
+                    if (currentPlayer === "X") {
+                        xScore++;
+                        xScoreElement.innerText = xScore;
+                    } else {
+                        oScore++;
+                        oScoreElement.innerText = oScore;
+                    }
+                    setTimeout(handleRestartGame, 5000); // Reset after 5 seconds
+                    return;
+                }
+
+                if (!board.includes("")) {
+                    messageElement.innerText = "It's a tie!";
+                    ties++;
+                    tiesElement.innerText = ties;
+                    isGameActive = false;
+                    setTimeout(handleRestartGame, 5000); // Reset after 5 seconds
+                    return;
+                }
+
+                currentPlayer = currentPlayer === "X" ? "O" : "X";
+
+                if (currentPlayer === "O" && isPlayerVsCPU) {
+                    setTimeout(cpuMove, 500);
+                }
+            };
+
+            const cpuMove = () => {
+                if (!isGameActive) return;
+
+                let difficulty = difficultySelect.value;
+                let moveIndex;
+
+                if (difficulty === "easy") {
+                    moveIndex = getRandomMove();
+                } else if (difficulty === "normal") {
+                    moveIndex = Math.random() > 0.5 ? getBestMove() : getRandomMove();
+                } else if (difficulty === "hard") {
+                    moveIndex = getBestMove();
+                }
+
+                board[moveIndex] = "O";
+                cells[moveIndex].innerText = "O";
+
+                handleResultValidation();
+            };
+
+            const getRandomMove = () => {
+                let availableCells = [];
+                board.forEach((cell, index) => {
+                    if (cell === "") availableCells.push(index);
+                });
+                return availableCells[Math.floor(Math.random() * availableCells.length)];
+            };
+
+            const getBestMove = () => {
+                let bestScore = -Infinity;
+                let move;
+
+                for (let i = 0; i < board.length; i++) {
+                    if (board[i] === "") {
+                        board[i] = "O";
+                        let score = minimax(board, 0, false);
+                        board[i] = "";
+                        if (score > bestScore) {
+                            bestScore = score;
+                            move = i;
+                        }
+                    }
+                }
+                return move;
+            };
+
+            const minimax = (board, depth, isMaximizing) => {
+                let scores = {
+                    O: 10,
+                    X: -10,
+                    tie: 0
+                };
+
+                let winner = checkWinner();
+                if (winner !== null) {
+                    return scores[winner];
+                }
+
+                if (isMaximizing) {
+                    let bestScore = -Infinity;
+                    for (let i = 0; i < board.length; i++) {
+                        if (board[i] === "") {
+                            board[i] = "O";
+                            let score = minimax(board, depth + 1, false);
+                            board[i] = "";
+                            bestScore = Math.max(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                } else {
+                    let bestScore = Infinity;
+                    for (let i = 0; i < board.length; i++) {
+                        if (board[i] === "") {
+                            board[i] = "X";
+                            let score = minimax(board, depth + 1, true);
+                            board[i] = "";
+                            bestScore = Math.min(score, bestScore);
+                        }
+                    }
+                    return bestScore;
+                }
+            };
+
+            const checkWinner = () => {
+                let roundWon = false;
+                for (let i = 0; i < winningConditions.length; i++) {
+                    const winCondition = winningConditions[i];
+                    const a = board[winCondition[0]];
+                    const b = board[winCondition[1]];
+                    const c = board[winCondition[2]];
+                    if (a === "" || b === "" || c === "") {
+                        continue;
+                    }
+                    if (a === b && b === c) {
+                        return a;
+                    }
+                }
+
+                if (!board.includes("")) {
+                    return "tie";
+                }
+
+                return null;
+            };
+
+            const handleCellClick = (e) => {
+                const clickedCell = e.target;
+                const clickedCellIndex = parseInt(clickedCell.getAttribute("data-index"));
+
+                if (board[clickedCellIndex] !== "" || !isGameActive || currentPlayer !== "X") {
+                    return;
+                }
+
+                board[clickedCellIndex] = currentPlayer;
+                clickedCell.innerText = currentPlayer;
+
+                handleResultValidation();
+            };
+
+            const handleRestartGame = () => {
+                board = ["", "", "", "", "", "", "", "", ""];
+                isGameActive = true;
+                currentPlayer = "X";
+                messageElement.innerText = "";
+                cells.forEach(cell => cell.innerText = "");
+            };
+
+            const handleModeChange = () => {
+                isPlayerVsCPU = modeSelect.value === "cpu";
+            };
+
+            const handleDifficultyChange = () => {
+                if (!isPlayerVsCPU) return;
+                handleRestartGame();
+            };
+
+            cells.forEach(cell => cell.addEventListener("click", handleCellClick));
+            resetButton.addEventListener("click", handleRestartGame);
+            modeSelect.addEventListener("change", handleModeChange);
+            difficultySelect.addEventListener("change", handleDifficultyChange);
+
+            // Initialize game mode
+            handleModeChange();
+        });
+    </script>
+</body>
+</html>
